@@ -6,7 +6,17 @@
  */
 
 module.exports = {
+	'list': function(req, res) {
+		Pug.find({}, function (err, puglist) {
+			if (err) {
+				res.send(500);
+			} else {
+				res.view('pug/list', {pugs: puglist});
+			}
+		});
+	},
 	'new': function(req, res) {
+		
 		res.view('pug/new', {test: 'world'});
 	}
 };

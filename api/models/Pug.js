@@ -7,8 +7,8 @@
 
 module.exports = {
   attributes: {
-	pugId: {
-		type: 'int'
+	server: {
+		type: 'string'
 	},
 	game: {
 		type: 'string',
@@ -17,12 +17,18 @@ module.exports = {
 	map: {
 		type: 'string'
 	},
-	rconaddress: {
-		type: 'string'
-	},
 	rconpassword: {
 		type: 'string',
 	},
+	maxplayers: {
+		type: 'int',
+	},
+	currentplayers: {
+		type: 'int',
+	},
+	state: {
+		type: 'string',
+	}
   }
 };
 
