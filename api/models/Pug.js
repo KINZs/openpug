@@ -10,6 +10,9 @@ module.exports = {
 	server: {
 		type: 'string'
 	},
+	port: {
+		type: 'int',
+	},
 	game: {
 		type: 'string',
 		enum: ['csgo', 'tf2']
@@ -20,6 +23,12 @@ module.exports = {
 	rconpassword: {
 		type: 'string',
 	},
+	connectpassword: {
+		type: 'string',
+	},
+	joinpassword: {
+		type: 'string',
+	},
 	maxplayers: {
 		type: 'int',
 	},
@@ -28,7 +37,19 @@ module.exports = {
 	},
 	state: {
 		type: 'string',
-	}
+	},
+	lobbyowner: {
+		type: 'string',
+	},
+	connectlink: function () {
+		return "steam://connect/" + this.server + ":" + this.port + "/" + this.connectpassword;
+	},
+	toJSON: function () {
+		var obj = this.toObject();
+		delete obj.rconpassword;
+		delete obj.joinpassword;
+		return obj;
+	},
   }
 };
 

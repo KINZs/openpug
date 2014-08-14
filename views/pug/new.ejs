@@ -1,1 +1,68 @@
-HEllo, <%= test %>!  New pug!
+<div class="container">
+	<form class="newpugform" method="post" action="/pug/new" role="form">
+		<div class="form-group">
+			<label for="gameInput">Game</label>
+			<div class="dropdown">
+  		 	<button class="btn btn-default dropdown-toggle" type="button" id="gameSelector" data-toggle="dropdown">
+				CSGO
+				<span class="caret"></span>
+  				</button>
+  				<ul class="dropdown-menu" role="menu" aria-labelledby="dropdownMenu1">
+    				<li role="presentation"><a role="menuitem" tabindex="-1" href="#" onclick=selectCSGO()>CSGO</a></li>
+    				<li role="presentation"><a role="menuitem" tabindex="-1" href="#" onclick=selectTF2()>TF2</a></li>
+  				</ul>
+			</div>
+			<input type="hidden" name="game" value="csgo" id="gameInput">
+		</div>
+		<div class="form-group" id="serverFormGroup">
+			<label for="serverInput">Server</label>
+			<input type="text" class="form-control" id="serverInput" name="server" required>
+			<span class="glyphicon glyphicon-ok form-control-feedback"></span>
+		</div>
+		<input type="hidden" id="portInput" name="port">
+		<div class="form-group" id="rconPasswordFormGroup">
+			<label for="rconInput">RCON Password</label>
+			<input type="password" class="form-control" id="rconInput" name="rconpassword" required>
+			<span class="glyphicon glyphicon-ok form-control-feedback"></span>
+		</div>	
+		<div class="form-group">
+			<label for="mapInput"> Map </label>
+			<input type="text" class="form-control" id="mapInput" name="map">
+		</div>
+		<div class="form-group">
+			<label for="passInput"> Join Password (optional)</label>
+			<input type="text" class="form-control" id="passInput" name="joinpassword">
+		</div>
+	
+		<button id="submitButton" class="btn btn-primary">Submit</button>
+		<input type='hidden' name='_csrf' value='<%=_csrf%>'>
+	</form>
+</div> 
+
+<script>
+$("#serverInput").change(function() {
+	// Split port information
+	var res = $("#serverInput").val().split(":");
+	if (res.length == 2) {
+		$("#portInput").val(res[1]);
+		$("#submitButton").prop("disabled", false);
+		$("#submitButton").html("Submit");
+	} else if (res.length == 1) {
+		$("#portInput").val("27015");
+		$("#submitButton").prop("disabled", false);
+		$("#submitButton").html("Submit");
+	} else {
+		$("#submitButton").prop("disabled", true);
+		$("#submitButton").html("Bad Server Info");
+	}
+});
+		
+function selectCSGO() {
+	$('#gameInput').val("csgo");
+	$('#gameSelector').html("CSGO <span class=\"caret\"</span>");
+}
+function selectTF2() {
+	$('#gameInput').val("tf2");
+	$('#gameSelector').html("TF2 <span class=\"caret\"</span>");
+}
+</script>
