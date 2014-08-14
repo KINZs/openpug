@@ -68,5 +68,13 @@ module.exports = {
 			res.view('pug/new');
 		}
 	},
+	'view': function(req, res) {
+		var pugid = req.param('p');
+		if(pugid == undefined) {
+			res.redirect('/pug/list');
+		} else {
+			res.send(200);
+		}
+	},
 };
 
