@@ -6,6 +6,12 @@
  */
 var passport = require("passport");
 module.exports = {
+	deleteall: function(req,res) {
+		User.find({}, function(err, users) {
+			users.forEach(function(user) { user.destroy(); });
+		});
+		res.send(200);
+	},
 	openauth: function(req,res) {
 		passport.authenticate('steam');
 	},
@@ -23,7 +29,7 @@ module.exports = {
 					res.send(500);
 					return;
 				}
-				res.redirect('/user/who');
+				res.redirect('/pug/list');
 				return;
 		});
 		})(req, res);    

@@ -18,7 +18,7 @@ module.exports = {
 				res.send(500);
 			} else {
 				Pug.subscribe(req.socket, puglist);
-				res.view('pug/list', {pugs: puglist});
+				res.view('pug/list', {user: req.user, pugs: puglist, auth: req.isAuthenticated()})
 			}
 		});
 	},
@@ -65,7 +65,7 @@ module.exports = {
 				});
 			}
 		} else {
-			res.view('pug/new');
+			res.view('pug/new', {auth: req.isAuthenticated()});
 		}
 	},
 	'join': function(req, res) {
