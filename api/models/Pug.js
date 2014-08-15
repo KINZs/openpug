@@ -35,10 +35,16 @@ module.exports = {
 	currentplayers: {
 		type: 'int',
 	},
+	players: {
+		type: 'json',
+	},
 	state: {
 		type: 'string',
 	},
 	lobbyowner: {
+		type: 'string',
+	},
+	picklogic: {
 		type: 'string',
 	},
 	connectlink: function () {

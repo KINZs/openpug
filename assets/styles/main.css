@@ -25,3 +25,6 @@ html, body {
 .newpugform .btn {
 	width: 250px;
 }
+.table .td .btn {
+	padding-left: 2px;
+}
