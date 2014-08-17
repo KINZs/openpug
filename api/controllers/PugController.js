@@ -81,27 +81,48 @@ module.exports = {
 				function(err, pug) {
 					if (err) res.send(500);
 					if (req.body.team == 'ct') {
-						if (pug.players_ct.indexOf(req.session.passport.user) > -1) {
-							// Player has already joined!
-							res.send(200);
-							return;
-						}
-						if (pug.players_t.indexOf(req.session.passport.user) > -1) {
-							// Switch from Terrorist to Counter-Terrorist
-							pug.players_t.splice(pug.players_t.indexOf(req.session.passport.user), 1);
-						}
-						pug.players_ct.push(req.session.passport.user);
+						User.findOne({id: req.session.passport.user}, function(err, user) {
+							if(err) res.send(500);
+							var indexof_user = -1;
+							for (i = pug.players_ct.length; i >= 0; --i) {
+								if (typeof pug.players_ct[i] == 'undefined') continue;
+								if (pug.players_ct[i].id == user.id) indexof_user = i;
+							}
+							if (indexof_user > -1) {
+								res.send(200);
+								return;
+							}
+							for (i = pug.players_t.length; i >= 0; --i) {
+								if (typeof pug.players_t[i] == 'undefined') continue;
+								if (pug.players_t[i].id == user.id) indexof_user = i;
+							}
+							if (indexof_user > -1) {
+								pug.players_t.splice(indexof_user, 1);
+							}
+			
+							pug.players_ct.push(user);
+						});
 					} else if (req.body.team == 't') {
-						if (pug.players_t.indexOf(req.session.passport.user) > -1) {
-							// Player has already joined, nothing to be done
-							res.send(200);
-							return;
-						}
-						if (pug.players_ct.indexOf(req.session.passport.user) > -1) {
-							//Switch from Counter-Terrorist to Terrorist
-							pug.players_ct.splice(pug.players_ct.indexOf(req.session.passport.user), 1);
-						}
-						pug.players_t.push(req.session.passport.user);
+						User.findOne({id: req.session.passport.user}, function(err, user) {
+							if (err) res.send(500);
+							var indexof_user = -1;
+							for (i = pug.players_t.length; i >=0; --i) {
+								if (typeof pug.players_t[i] == 'undefined') continue;
+								if (pug.players_t[i].id == user.id) indexof_user = i;
+							}
+							if (indexof_user > -1) {
+								res.send(200);
+								return;
+							}
+							for (i = pug.players_ct.length; i >= 0; --i) {
+								if (typeof pug.players_ct[i] == 'undefined') continue;
+								if (pug.players_ct[i].id == user.id) indexof_user = i;
+							}
+							if (indexof_user > -1) {
+								pug.players_ct.splice(indexof_user, 1);
+							}
+							pug.players_t.push(user);
+						});
 					}
 					Pug.update({id: req.body.pugid}, {players_t: pug.players_t, players_ct: pug.players_ct}).exec(
 					function(err, updatedpug) {
@@ -111,6 +132,9 @@ module.exports = {
 				});
 			}
 		}
+	},
+	'leave': function(req, res) {
+			//TODO
 	},
 	'view': function(req, res) {
 		if(req.params.id == undefined) {
