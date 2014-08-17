@@ -1,29 +1,57 @@
 <div class="container">
-	<table class="table table-striped table-condensed">
+	<table id="pugtable" class="table table-striped table-hover">
+		<tbody id="pugtablebody">
 		<tr>
 			<th>Game</th>
 			<th>State</th>
 			<th>Map</th>
 			<th>Players</th>
 		</tr>
+	
 		<% pugs.forEach(function(pug) { %>
-			<tr>
-				<td><% if (pug.game == 'csgo') { %>
+			<tr class='pugRow' id="<%= pug.id %>">
+				<td class="puggame"><% if (pug.game == 'csgo') { %>
 						Counter-Strike: Global Offensive
 					<%} else if (pug.game == 'tf2'){%>
 						Team Fortress 2
 					<%}%>
 				</td>
-				<td><%= pug.state %></td>
-				<td><%= pug.map %></td>
-				<td><%= pug.currentplayers %>/<%= pug.maxplayers %><button type="button" class="btn btn-success" onclick="document.location = '/pug/view?p=<%= pug.id %>'">Join</button></td>
+				<td class="pugstate"><%= pug.state %></td>
+				<td class="pugmap"><%= pug.map %></td>
+				<td class="pugplayers"><%= pug.currentplayers %>/<%= pug.maxplayers %></td>
 			</tr>
 		<% }); %> 
+		</tbody>
 	</table>
 </div>
 <script>
-	io.socket.on('pug', function (message) {
-		console.log(message);
-	});
+io.socket.on('pug', function (message) {
+	var fullgamename;
+	if (message.data.game == 'csgo') {
+		fullgamename = "Counter-Strike: Global Offensive";
+	} else if (message.data.game == 'tf2') {
+		fullgamename = "Team Fortress 2";
+	}
+	if (message.verb == 'created') {
+		$('#pugtablebody').append("<tr id=\"" + message.data.id + "\">");
+		$('#'+message.data.id).append("<td>" + fullgamename + "</td>");
+		$('#'+message.data.id).append("<td>" + message.data.state + "</td>");
+		$('#'+message.data.id).append("<td>" + message.data.map + "</td>");
+		$('#'+message.data.id).append("<td>" + message.data.currentplayers + "/" + message.data.maxplayers + "</td>");
+		$('#'+message.data.id).click(function() {
+			window.document.location = '/pug/view/' + message.data.id;
+		});
+	} else if (message.verb == 'updated') {	
+		$('#'+message.data.id+' .pugstate').html(message.data.state);
+		$('#'+message.data.id+' .puggame').html(fullgamename);
+		$('#'+message.data.id+' .pugmap').html(message.data.map);
+		$('#'+message.data.id+' .pugplayers').html(message.data.currentplayers + '/' + message.data.maxplayers);
+	}
+});
+<% pugs.forEach(function(pug) { %>
+$('#<%= pug.id %>').click(function() {
+	window.document.location = '/pug/view/<%=pug.id%>';
+});
+<% }); %>
 io.socket.get('/pug', function(res) {console.log(res)});
 </script>

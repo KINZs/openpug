@@ -18,9 +18,12 @@ module.exports = {
 				res.send(500);
 			} else {
 				Pug.subscribe(req.socket, puglist);
-				res.view('pug/list', {user: req.user, pugs: puglist, auth: req.isAuthenticated()})
+				res.view('pug/list', {user: req.user, pugs: puglist })
 			}
 		});
+	},
+	'homepage': function(req, res) {
+		res.view('welcomepage', {user: req.user});
 	},
 	'test': function(req, res) {
 		if (req.method == 'POST') {
@@ -45,55 +48,75 @@ module.exports = {
 		if (req.method == 'POST') {
 			if (req.body.game == 'csgo') {
 				var Rcon = require('rcon');
+				console.log(req.body.server + ":"+req.body.port + ", " + req.body.rconpassword);
 				var conn = new Rcon(req.body.server, req.body.port, req.body.rconpassword);
 				conn.connect();
 				conn.on('auth', function() {
 					conn.disconnect();
 					Pug.create({server: req.body.server, port: req.body.port, game: req.body.game,
 								map: req.body.map, rconpassword: req.body.rconpassword, maxplayers: 10, currentplayers: 0,
-								state: 'validating', players: {ct: [], t: []}, joinpassword: req.body.joinpassword}).exec(
+								state: 'validating', players_ct: [], players_t: [], joinpassword: req.body.joinpassword}).exec(
 								function(err, pug) {
 									if (err) { 
 										res.send(500);							
-									} else {
+										} else {
+											Pug.publishCreate(pug);							
 										res.redirect('/pug/view?p=' + pug.id);
 									}});
 					});
-				conn.on('error', function() {
+					
+				conn.on('error', function(err) {
 					conn.disconnect();
-					res.view('pug/rconerror');
+					res.view('pug/rconerror', {error: err});
 				});
 			}
 		} else {
-			res.view('pug/new', {auth: req.isAuthenticated()});
+			res.view('pug/new', {user: req.user});
 		}
 	},
 	'join': function(req, res) {
 		if (req.method == 'POST') {
-			if (req.body.pugid != undefined && req.body.jointeam != undefined) {
+			if (req.body.pugid != undefined && req.body.team != undefined) {
 				Pug.findOne({id: req.body.pugid}, 
 				function(err, pug) {
 					if (err) res.send(500);
-					if (req.body.jointeam == 'ct') {
-						pug.players.ct.append(req.user.id);
-					} else if (req.body.jointeam == 't') {
-						pug.players.t.append(req.user.id);
-					} else if (req.body.jointeam == 'red') {
-						pug.players.red.append(req.user.id);
-					} else if (req.body.jointeam == 'blu') {
-						pug.players.blu.append(req.user.id);
+					if (req.body.team == 'ct') {
+						if (pug.players_ct.indexOf(req.session.passport.user) > -1) {
+							// Player has already joined!
+							res.send(200);
+							return;
+						}
+						if (pug.players_t.indexOf(req.session.passport.user) > -1) {
+							// Switch from Terrorist to Counter-Terrorist
+							pug.players_t.splice(pug.players_t.indexOf(req.session.passport.user), 1);
+						}
+						pug.players_ct.push(req.session.passport.user);
+					} else if (req.body.team == 't') {
+						if (pug.players_t.indexOf(req.session.passport.user) > -1) {
+							// Player has already joined, nothing to be done
+							res.send(200);
+							return;
+						}
+						if (pug.players_ct.indexOf(req.session.passport.user) > -1) {
+							//Switch from Counter-Terrorist to Terrorist
+							pug.players_ct.splice(pug.players_ct.indexOf(req.session.passport.user), 1);
+						}
+						pug.players_t.push(req.session.passport.user);
 					}
+					Pug.update({id: req.body.pugid}, {players_t: pug.players_t, players_ct: pug.players_ct}).exec(
+					function(err, updatedpug) {
+						Pug.publishUpdate(updatedpug[0].id, {players_ct: pug.players_ct, players_t: pug.players_t});
+					});
+					res.send(200);
 				});
 			}
 		}
 	},
 	'view': function(req, res) {
-		var pugid = req.param('p');
-		console.log(pugid);
-		if(pugid == undefined) {
+		if(req.params.id == undefined) {
 			res.redirect('/pug/list');
 		} else {
-			Pug.findOne({id: pugid}).exec(
+			Pug.findOne({id: req.params.id}).exec(
 			function(err, foundpug) {
 				if (err) {
 					res.send(500);
@@ -102,12 +125,12 @@ module.exports = {
 						// No such pug!
 						res.redirect('/pug/list');
 					} else {
-						console.log(foundpug.players);
-						res.view('pug/pugview', {pug: foundpug});
+						Pug.subscribe(req.socket, foundpug);
+						res.view('pug/pugview', {user: req.user, pug: foundpug});
 					}
 				}
 			});
-		}
+		} 
 	},
 };
 

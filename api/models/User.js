@@ -20,6 +20,9 @@ module.exports = {
 	displayName: {
 		type: 'string'
 	},
+	avatar: {
+		type: 'string'
+	},
 	toJSON: function() {
 		var obj = this.toObject();
 		delete obj.joinpw;	

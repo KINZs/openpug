@@ -28,3 +28,39 @@ html, body {
 .table .td .btn {
 	padding-left: 2px;
 }
+.displayprofile {
+	width: 150px;
+	height: 50px;
+	display: block;
+	position: relative;
+	padding: 8px 0px;
+}
+.displayprofile img {
+	border: 1px solid #eee;
+	float: left;
+}
+.displayProfileName {
+	font-size: 14px;
+	color: #000;
+	float: left;
+	overflow: hidden;
+	overflow-x: hidden;
+	overflow-y: hidden;
+	white-space: nowrap;
+	max-width: 70%;
+	margin-top: 6px;
+	margin-left: 4px;
+	text-overflow: ellipsis;
+}
+.displayprofile ul {
+	list-style-type: none;
+	width: 100%;
+}
+.displayprofile ul li {
+	float: left;
+}
+.row-centered {
+	width: 100%;
+	margin-left: auto;
+	margin-right: auto;
+}

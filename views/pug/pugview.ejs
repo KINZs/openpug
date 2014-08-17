@@ -1,3 +1,73 @@
 <div class="container">
+	<div class="row">
+		<div class="col-md-4" id="puginfodiv">
+			
+			<h4><% if (pug.game == 'csgo' ) { %>
+						Counter-Strike: Global Offensive
+					<% } %> 
+			</h4>
 
+			<p><%= pug.server %> </p>
+			<p> Map: <%= pug.map %> </p>
+			<p> Config: CEVO</p>		
+	
+		</div>
+		<div class="col-md-4" id="team0div">
+			<h5 style="margin-left: auto; margin-right: auto; width: 100%;"> Counter-Terrorists </h5>
+			<ul class="list-group" id="ctlist">
+				<% for (i = 0; i < pug.maxplayers/2; ++i) { %>
+					<% if (typeof pug.players_ct[i] == 'undefined') { %>
+						<a href="#" class="list-group-item" id="ct<%=i%>">Open Slot</a>
+					<% } else { %>
+						<a href="#" class="list-group-item" id="ct<%=i%>"> <%= pug.players_ct[i] %> </a>
+					<% } %>
+				<% } %>
+			</ul>
+			<button type="button" class="btn btn-success" id="joinCT"> Join Counter-Terrorists </button>
+		</div>
+		<div class="col-md-4" id="team1div">
+			<h5 style="margin-left: auto; margin-right: auto; width: 100%;"> Terrorists </h5>
+			<ul class="list-group" id="tlist">
+				<% for (i = 0; i < pug.maxplayers/2; ++i) { %>
+					<% if (typeof pug.players_t[i] == 'undefined') { %>
+						<a href="#" class="list-group-item" id="t<%= i %>">Open Slot</a>
+					<% } else { %>
+						<a href="#" class="list-group-item" id="t<%= i %>"> <%= pug.players_t[i] %></a>
+					<% } %>
+				<% } %>
+				</ul>
+				<button type="button" class="btn btn-success" id="joinT">Join Terrorist</button>
+		</div>
+	</div>
 </div>
+<script>
+$("#joinCT").click(function() {
+	
+	io.socket.post("/pug/join", {pugid: <%= pug.id %>, team: 'ct', _csrf: '<%=_csrf%>'}, function(data, jwres) {
+	});
+});
+$("#joinT").click(function() {
+	io.socket.post("/pug/join", {pugid: <%= pug.id %>, team: 't', _csrf: '<%=_csrf%>'}, function(data, jwres) { console.log(data); });
+});
+
+// Subscribe to updates about this pug
+io.socket.get("/pug/<%= pug.id %>", function(res) {});	
+io.socket.on('pug', function(message) {
+	if (message.id == <%= pug.id %> && message.verb == 'updated') {
+		console.log(message);
+			for (i = 0; i < <%= pug.maxplayers %> / 2; ++i) {
+				if (typeof message.data.players_ct[i] != 'undefined') {
+					$("#ct"+i).html(message.data.players_ct[i]);
+				} else {
+					$("#ct"+i).html("Open Slot");
+				}
+			}
+			for (i = 0; i < <%= pug.maxplayers %> / 2; ++i) {
+				if (typeof message.data.players_t[i] != 'undefined') {
+					$("#t"+i).html(message.data.players_t[i]);
+				} else {
+					$("#t"+i).html("Open Slot");
+				}
+		}
+	}});
+</script>

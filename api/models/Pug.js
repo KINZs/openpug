@@ -35,8 +35,11 @@ module.exports = {
 	currentplayers: {
 		type: 'int',
 	},
-	players: {
-		type: 'json',
+	players_ct: {
+		type: 'array',
+	},
+	players_t: {
+		type: 'array',
 	},
 	state: {
 		type: 'string',

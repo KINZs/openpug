@@ -18,7 +18,7 @@ passport.use(new SteamStrategy({
 		User.findOne({openId: identifier}, function(err, users) {
 			if (users) return done(err, users);
 
-			User.create({openId: identifier, joinpw: Math.random().toString(36).substring(2, 10), steamid: profile.id}, function(err, user) {
+			User.create({openId: identifier, joinpw: Math.random().toString(36).substring(2, 10), displayName: profile.displayName, steamid: profile.id, avatar: profile._json.avatar},function(err, user) {
 				return done(err, user);
 			});
 		});
