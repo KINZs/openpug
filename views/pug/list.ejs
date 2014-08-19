@@ -18,7 +18,7 @@
 				</td>
 				<td class="pugstate"><%= pug.state %></td>
 				<td class="pugmap"><%= pug.map %></td>
-				<td class="pugplayers"><%= pug.currentplayers %>/<%= pug.maxplayers %></td>
+				<td class="pugplayers"><%= pug.currentplayers() %>/<%= pug.maxplayers %></td>
 			</tr>
 		<% }); %> 
 		</tbody>
@@ -37,7 +37,9 @@ io.socket.on('pug', function (message) {
 		$('#'+message.data.id).append("<td>" + fullgamename + "</td>");
 		$('#'+message.data.id).append("<td>" + message.data.state + "</td>");
 		$('#'+message.data.id).append("<td>" + message.data.map + "</td>");
-		$('#'+message.data.id).append("<td>" + message.data.currentplayers + "/" + message.data.maxplayers + "</td>");
+		var nplayers = message.data.players_ct.length+message.data.players_t.length;
+		if (nplayers == 'undefined') nplayers = 0;
+		$('#'+message.data.id).append("<td>" + nplayers + "/" + message.data.maxplayers + "</td>");
 		$('#'+message.data.id).click(function() {
 			window.document.location = '/pug/view/' + message.data.id;
 		});
@@ -45,7 +47,9 @@ io.socket.on('pug', function (message) {
 		$('#'+message.data.id+' .pugstate').html(message.data.state);
 		$('#'+message.data.id+' .puggame').html(fullgamename);
 		$('#'+message.data.id+' .pugmap').html(message.data.map);
-		$('#'+message.data.id+' .pugplayers').html(message.data.currentplayers + '/' + message.data.maxplayers);
+		var nplayers = message.data.players_t.length+message.data.players_ct.length;
+		if (nplayers == 'undefined') nplayers = 0;
+		$('#'+message.data.id+' .pugplayers').html(nplayers + '/' + message.data.maxplayers);
 	}
 });
 <% pugs.forEach(function(pug) { %>
@@ -53,5 +57,5 @@ $('#<%= pug.id %>').click(function() {
 	window.document.location = '/pug/view/<%=pug.id%>';
 });
 <% }); %>
-io.socket.get('/pug', function(res) {console.log(res)});
+io.socket.get('/pug', function(res) {});
 </script>

@@ -46,14 +46,13 @@ $("#joinCT").click(function() {
 	});
 });
 $("#joinT").click(function() {
-	io.socket.post("/pug/join", {pugid: <%= pug.id %>, team: 't', _csrf: '<%=_csrf%>'}, function(data, jwres) { console.log(data); });
+	io.socket.post("/pug/join", {pugid: <%= pug.id %>, team: 't', _csrf: '<%=_csrf%>'}, function(data, jwres) {  });
 });
 
 // Subscribe to updates about this pug
 io.socket.get("/pug/<%= pug.id %>", function(res) {});	
 io.socket.on('pug', function(message) {
 	if (message.id == <%= pug.id %> && message.verb == 'updated') {
-		console.log(message);
 		for (i = 0; i < message.data.players_ct.length; ++i) {
 			$("#ct"+i).html(message.data.players_ct[i].displayName);
 		}
@@ -68,4 +67,9 @@ io.socket.on('pug', function(message) {
 		}
 	}
 });
+
+// Leave pug on window close
+window.onbeforeunload = function() {
+	io.socket.post("/pug/leave", {pugid: <%= pug.id %>, _csrf: '<%=_csrf%>'}, function(data) { console.log(data); });
+}
 </script>

@@ -32,14 +32,16 @@ module.exports = {
 	maxplayers: {
 		type: 'int',
 	},
-	currentplayers: {
-		type: 'int',
-	},
 	players_ct: {
 		type: 'array',
-	},
+	},	
 	players_t: {
 		type: 'array',
+	},
+	currentplayers: function() {
+		var len = this.players_ct.length + this.players_t.length;
+		if (len == 'undefined') len = 0;
+		return len;
 	},
 	state: {
 		type: 'string',

@@ -1,6 +1,5 @@
-/**
- * PugController
- *
+/* 
+*
  * @description :: Server-side logic for managing pugs
  * @help        :: See http://links.sailsjs.org/docs/controllers
  */
@@ -54,7 +53,7 @@ module.exports = {
 				conn.on('auth', function() {
 					conn.disconnect();
 					Pug.create({server: req.body.server, port: req.body.port, game: req.body.game,
-								map: req.body.map, rconpassword: req.body.rconpassword, maxplayers: 10, currentplayers: 0,
+								map: req.body.map, rconpassword: req.body.rconpassword, maxplayers: 10, 
 								state: 'validating', players_ct: [], players_t: [], joinpassword: req.body.joinpassword}).exec(
 								function(err, pug) {
 									if (err) { 
@@ -99,8 +98,13 @@ module.exports = {
 							if (indexof_user > -1) {
 								pug.players_t.splice(indexof_user, 1);
 							}
-			
+							delete user.joinpw;	
 							pug.players_ct.push(user);
+							Pug.update({id: req.body.pugid}, {players_t: pug.players_t, players_ct: pug.players_ct}).exec(
+							function(err, updatedpug) {
+								Pug.publishUpdate(updatedpug[0].id, updatedpug[0].toJSON());
+								res.send(200);
+							});
 						});
 					} else if (req.body.team == 't') {
 						User.findOne({id: req.session.passport.user}, function(err, user) {
@@ -121,20 +125,65 @@ module.exports = {
 							if (indexof_user > -1) {
 								pug.players_ct.splice(indexof_user, 1);
 							}
+							delete user.joinpw;
 							pug.players_t.push(user);
+							Pug.update({id: req.body.pugid}, {players_t: pug.players_t, players_ct: pug.players_ct}).exec(
+							function(err, updatedpug) {
+								Pug.publishUpdate(updatedpug[0].id, updatedpug[0].toJSON());
+								res.send(200);
+							});
 						});
 					}
-					Pug.update({id: req.body.pugid}, {players_t: pug.players_t, players_ct: pug.players_ct}).exec(
-					function(err, updatedpug) {
-						Pug.publishUpdate(updatedpug[0].id, {players_ct: pug.players_ct, players_t: pug.players_t});
-					});
-					res.send(200);
 				});
 			}
 		}
 	},
 	'leave': function(req, res) {
-			//TODO
+		if (req.body.pugid != undefined) {
+			Pug.findOne({id: req.body.pugid}, 
+			function(err, pug) {
+				var indexof_user = -1;
+				var tlen = pug.players_t.length;
+				var ctlen = pug.players_ct.length;
+				if (tlen == 'undefined') tlen = 0;
+				if (ctlen == 'undefined') ctlen = 0;
+
+				if (tlen > 0) {
+					// Search players_t for user id, remove it if found
+					for (i = tlen-1; i > -1; --i) {
+						if (pug.players_t[i].id == req.session.passport.user) indexof_user = i;
+					}
+					if (indexof_user > -1) {
+						pug.players_t.splice(indexof_user, 1);
+						Pug.update({id: req.body.pugid}, {players_t: pug.players_t}).exec(
+						function(err, updatedpug) {
+							if (err) res.send(500);
+							Pug.publishUpdate(updatedpug[0].id, updatedpug[0].toJSON());
+						});
+						res.send(200);
+					}
+				}
+		
+				indexof_user = -1;	
+				if (ctlen > 0) {
+					// Search players_ct for user id, remove it if found	
+					for (i = ctlen-1; i>-1; --i) {
+						if (pug.players_ct[i].id == req.session.passport.user) indexof_user = i;
+					}
+					if (indexof_user > -1) {
+						pug.players_ct.splice(indexof_user, 1);
+						Pug.update({id: req.body.pugid}, {players_ct: pug.players_ct}).exec(
+						function(err, updatedpug) {
+							if (err) res.send(500);
+							Pug.publishUpdate(updatedpug[0].id, updatedpug[0].toJSON());
+						});
+						res.send(200);
+					}
+				}			
+				// If we're here, it means the currently logged in user was not entered into the pug
+				res.send(500);
+			});
+		}						
 	},
 	'view': function(req, res) {
 		if(req.params.id == undefined) {
