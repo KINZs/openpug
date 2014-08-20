@@ -23,6 +23,9 @@ module.exports = {
 	avatar: {
 		type: 'string'
 	},
+	_waiting: {
+		type: 'boolean'
+	},
 	toJSON: function() {
 		var obj = this.toObject();
 		delete obj.joinpw;	

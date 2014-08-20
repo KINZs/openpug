@@ -1,8 +1,66 @@
-/* 
+/*  
 *
  * @description :: Server-side logic for managing pugs
  * @help        :: See http://links.sailsjs.org/docs/controllers
  */
+
+function waitForUserToJoin(user, pug)
+{
+	var Rcon = require('rcon');
+	var conn = new Rcon(pug.server, pug.port, pug.rconpassworD);
+	conn.on('auth', function() {
+		conn.send('sv_password ' + user.joinpw);
+		User.update(user, {_waiting: true}).exec(function(err, updated) {
+			User.publishUpdate(updated[0].id, {_waiting: true});
+		});
+		Pug.update({id: pug.id}, {state: 'waiting for ' + user.displayName}).exec(function(err, updated) {
+			Pug.publishUpdate(updated[0].id, {state: updated[0].state});
+		});
+		conn.disconnect();
+	});
+	conn.connect();
+}
+
+function readyUP(pug) {
+	// This should be a module
+	
+	// Check RCON connectivity (should have been checked at lobby creation, but let's check it again.)
+	var Rcon = require('rcon');
+	var conn = new Rcon(pug.server, pug.port, pug.rconpassword);
+	conn.on('error', function(err) { console.log(err); }); // todo
+	conn.on('auth', function() {
+		var ReadyBot = require('readybot');
+		var bot = new ReadyBot(conn);
+		// Ready the first user (ct[0])
+		User.findOne({id: pug.players_ct[0].id}, function(err, usr) {
+			waitForUserToJoin(usr, pug);
+		});
+		bot.on('userconnected', function(steamidtxt) {
+			console.log(steamidtxt);
+			var index_ct = -1;
+			var index_t = -1;
+			var steam = require('steamidconvert')();
+			var steamid64 = steam.convertTo64(steamidtxt);
+			for (i = 0; i < pug.players_ct.length; ++i) {
+				if (players_ct.steamid == steamid64) index_ct = i;
+				if (players_t.steamid == steamid64) index_t = i;
+			}
+			if (index_ct > -1) {
+				User.findOne({steamid: pug.players_t[index_ct]}, function(err, user) {
+					waitForUserToJoin(user, pug);
+				});
+			}
+			if (index_t > -1) {
+				if ((index_t + 1) == pug.players_ct.length) return;
+
+				User.findOne({steamid: pug.players_ct[index_t+1]}, function(err, user) {
+					waitForUserToJoin(user, pug);
+				});
+			}
+		}); 
+	});
+	conn.connect();
+}
 
 module.exports = {
 	'deleteall': function(req, res) {
@@ -53,7 +111,7 @@ module.exports = {
 				conn.on('auth', function() {
 					conn.disconnect();
 					Pug.create({server: req.body.server, port: req.body.port, game: req.body.game,
-								map: req.body.map, rconpassword: req.body.rconpassword, maxplayers: 10, 
+								map: req.body.map, rconpassword: req.body.rconpassword, maxplayers: 2, 
 								state: 'validating', players_ct: [], players_t: [], joinpassword: req.body.joinpassword}).exec(
 								function(err, pug) {
 									if (err) { 
@@ -80,10 +138,14 @@ module.exports = {
 				function(err, pug) {
 					if (err) res.send(500);
 					if (req.body.team == 'ct') {
+						if (pug.players_ct.length == pug.maxplayers/2) {
+							res.send(403);
+							return;
+						}
 						User.findOne({id: req.session.passport.user}, function(err, user) {
 							if(err) res.send(500);
 							var indexof_user = -1;
-							for (i = pug.players_ct.length; i >= 0; --i) {
+							for (i = pug.players_ct.length-1; i >= 0; --i) {
 								if (typeof pug.players_ct[i] == 'undefined') continue;
 								if (pug.players_ct[i].id == user.id) indexof_user = i;
 							}
@@ -91,7 +153,7 @@ module.exports = {
 								res.send(200);
 								return;
 							}
-							for (i = pug.players_t.length; i >= 0; --i) {
+							for (i = pug.players_t.length-1; i >= 0; --i) {
 								if (typeof pug.players_t[i] == 'undefined') continue;
 								if (pug.players_t[i].id == user.id) indexof_user = i;
 							}
@@ -99,7 +161,16 @@ module.exports = {
 								pug.players_t.splice(indexof_user, 1);
 							}
 							delete user.joinpw;	
+							delete user.openId;
+							delete user.createdAt;
+							delete user.updatedAt;
 							pug.players_ct.push(user);
+							
+							// ReadyUP logic
+							if (pug.currentplayers() == pug.maxplayers) {
+								readyUP(pug);
+							}
+					
 							Pug.update({id: req.body.pugid}, {players_t: pug.players_t, players_ct: pug.players_ct}).exec(
 							function(err, updatedpug) {
 								Pug.publishUpdate(updatedpug[0].id, updatedpug[0].toJSON());
@@ -107,10 +178,14 @@ module.exports = {
 							});
 						});
 					} else if (req.body.team == 't') {
+						if (pug.players_t.length == pug.maxplayers/2) {
+							res.send(403);
+							return;
+						}
 						User.findOne({id: req.session.passport.user}, function(err, user) {
 							if (err) res.send(500);
 							var indexof_user = -1;
-							for (i = pug.players_t.length; i >=0; --i) {
+							for (i = pug.players_t.length-1; i >=0; --i) {
 								if (typeof pug.players_t[i] == 'undefined') continue;
 								if (pug.players_t[i].id == user.id) indexof_user = i;
 							}
@@ -118,7 +193,7 @@ module.exports = {
 								res.send(200);
 								return;
 							}
-							for (i = pug.players_ct.length; i >= 0; --i) {
+							for (i = pug.players_ct.length-1; i >= 0; --i) {
 								if (typeof pug.players_ct[i] == 'undefined') continue;
 								if (pug.players_ct[i].id == user.id) indexof_user = i;
 							}
@@ -126,7 +201,14 @@ module.exports = {
 								pug.players_ct.splice(indexof_user, 1);
 							}
 							delete user.joinpw;
+							delete user.openId;
+							delete user.createdAt;
+							delete user.updatedAt;
 							pug.players_t.push(user);
+
+							if (pug.currentplayers() == pug.maxplayers) {
+								readyUP(pug);
+							}
 							Pug.update({id: req.body.pugid}, {players_t: pug.players_t, players_ct: pug.players_ct}).exec(
 							function(err, updatedpug) {
 								Pug.publishUpdate(updatedpug[0].id, updatedpug[0].toJSON());

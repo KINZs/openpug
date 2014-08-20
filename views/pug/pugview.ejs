@@ -10,6 +10,7 @@
 			<p><%= pug.server %> </p>
 			<p> Map: <%= pug.map %> </p>
 			<p> Config: CEVO</p>		
+
 	
 		</div>
 		<div class="col-md-4" id="team0div">
@@ -39,6 +40,16 @@
 				<button type="button" class="btn btn-success" id="joinT">Join Terrorist</button>
 		</div>
 	</div>
+	<div class="row">
+	<div class="col-md-12">
+	<h3> Server Status </h3>
+		<div class="progress">
+			<div id="statusbar" class="progress-bar progress-bar-success progress-bar-striped active" role="progressbar" aria-valuenow="10" aria-valuemin="0" aria-valuemax="100" style="width:100%;" >
+				Ready
+			</div>
+		</div>
+	</div>
+	</div>
 </div>
 <script>
 $("#joinCT").click(function() {
@@ -67,6 +78,7 @@ io.socket.on('pug', function(message) {
 		}
 	}
 });
+io.socket.get("/user/<%= user.id %>", function(data) { console.log(data); }); 
 
 // Leave pug on window close
 window.onbeforeunload = function() {
