@@ -6,6 +6,20 @@
 */
 
 module.exports = {
+	readyup: function(pug) {
+		var Rcon = require('rcon');
+		var conn = new Rcon(pug.server, pug.port, pug.rconpassword);
+
+		conn.on('error', function(err) { console.log(err); }); // TODO
+		conn.on('auth', function() { 
+			var ReadyBot = require('readybot');
+			var bot = new ReadyBot(conn);
+			bot.on('userconnected', function(steamidtxt) {
+				console.log(steamidtxt);
+			});
+
+		});
+	},
   attributes: {
 	server: {
 		type: 'string'

@@ -168,7 +168,7 @@ module.exports = {
 							
 							// ReadyUP logic
 							if (pug.currentplayers() == pug.maxplayers) {
-								readyUP(pug);
+								Pug.readyup(pug);
 							}
 					
 							Pug.update({id: req.body.pugid}, {players_t: pug.players_t, players_ct: pug.players_ct}).exec(
@@ -207,7 +207,7 @@ module.exports = {
 							pug.players_t.push(user);
 
 							if (pug.currentplayers() == pug.maxplayers) {
-								readyUP(pug);
+								Pug.readyup(pug);
 							}
 							Pug.update({id: req.body.pugid}, {players_t: pug.players_t, players_ct: pug.players_ct}).exec(
 							function(err, updatedpug) {
