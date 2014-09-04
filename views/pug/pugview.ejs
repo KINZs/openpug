@@ -63,18 +63,37 @@ $("#joinT").click(function() {
 // Subscribe to updates about this pug
 io.socket.get("/pug/<%= pug.id %>", function(res) {});	
 io.socket.on('pug', function(message) {
+	console.log(message);
 	if (message.id == <%= pug.id %> && message.verb == 'updated') {
 		for (i = 0; i < message.data.players_ct.length; ++i) {
 			$("#ct"+i).html(message.data.players_ct[i].displayName);
+			if (message.data.players_ct[i].connectState == 'connected') {
+				$("#ct"+i).removeClass('list-group-item-danger');
+				$("#ct"+i).addClass('list-group-item-success');
+			} else if (message.data.players_ct[i].connectState == 'disconnected') {
+				$("#ct"+i).removeClass('list-group-item-success');
+				$("#ct"+i).addClass('list-group-item-danger');
+			}
 		}
 		for (i = 5; i >= message.data.players_ct.length; --i) {
 			$("#ct"+i).html("Open Slot");
+			$("#ct"+i).removeClass('list-group-item-success');
+			$("#ct"+i).removeClass('list-group-item-danger');
 		}
 		for (i = 0; i < message.data.players_t.length; ++i) {
 			$("#t"+i).html(message.data.players_t[i].displayName);
+			if (message.data.players_t[i].connectState == 'connected') {
+				$("#t"+i).removeClass('list-group-item-danger');
+				$("#t"+i).addClass('list-group-item-success');
+			} else if (message.data.players_t[i].connectState == 'disconnected') {
+				$("#t"+i).removeClass('list-group-item-success');
+				$("#t"+i).addClass('list-group-item-danger');
+			}
 		}
 		for (i = 5; i >= message.data.players_t.length; --i) {
 			$("#t"+i).html("Open Slot");
+			$("#t"+i).removeClass('list-group-item-success');
+			$("#t"+i).removeClass('list-group-item-danger');
 		}
 	}
 });
