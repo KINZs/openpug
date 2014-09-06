@@ -17,11 +17,7 @@
 			<h5 style="margin-left: auto; margin-right: auto; width: 100%;"> Counter-Terrorists </h5>
 			<ul class="list-group" id="ctlist">
 				<% for (i = 0; i < pug.maxplayers/2; ++i) { %>
-					<% if (typeof pug.players_ct[i] == 'undefined') { %>
 						<a href="#" class="list-group-item" id="ct<%=i%>">Open Slot</a>
-					<% } else { %>
-						<a href="https://steamcommunity.com/profiles/<%= pug.players_ct[i].steamid %>" class="list-group-item" id="ct<%=i%>"> <%= pug.players_ct[i].displayName %> </a>
-					<% } %>
 				<% } %>
 			</ul>
 			<button type="button" class="btn btn-success" id="joinCT"> Join Counter-Terrorists </button>
@@ -30,11 +26,7 @@
 			<h5 style="margin-left: auto; margin-right: auto; width: 100%;"> Terrorists </h5>
 			<ul class="list-group" id="tlist">
 				<% for (i = 0; i < pug.maxplayers/2; ++i) { %>
-					<% if (typeof pug.players_t[i] == 'undefined') { %>
 						<a href="#" class="list-group-item" id="t<%= i %>">Open Slot</a>
-					<% } else { %>
-						<a href="https://steamcommunity.com/profiles/<%= pug.players_t[i].steamid %>" class="list-group-item" id="t<%= i %>"> <%= pug.players_t[i].displayName %></a>
-					<% } %>
 				<% } %>
 				</ul>
 				<button type="button" class="btn btn-success" id="joinT">Join Terrorist</button>
@@ -59,13 +51,9 @@
 				<h4 class="modal-title">Ready Up</h4>
 			</div>
 			<div class="modal-body">
-				<div class="container">
 					<button id="readybutton" type="button" class="btn btn-primary"> Ready </button>
 					<div id="readybar" class="progress-bar" role="progressbar" style="width:10%">
 					</div>
-				</div>
-			</div>
-			<div class="modal-footer">
 			</div>
 		</div>
 	</div>
@@ -124,9 +112,18 @@ io.socket.get("/pug/<%= pug.id %>", function(res) {});
 io.socket.on('pug', function(message) {
 	console.log(message);
 	if (message.verb == 'updated') {
+	
+	}
+	if (message.data.state == 'filling') {
+		im_ready = false;
+		$('#readymodal').modal('hide');
+		$('#readybar').hide();
+		$('readybutton').show();
+
 		if (message.data.nplayers != undefined) {
 			var barwidth = ((message.data.nplayers)/<%= pug.maxplayers %>) * 100 + '%';
 			$("#statusbar").width(barwidth);
+			$("#statusbar").html('filling...');
 		}
 	}
 	if (message.data.state == 'readyup') {
@@ -137,6 +134,14 @@ io.socket.on('pug', function(message) {
 			$("#readybar").hide();
 			$("#readybutton").show();
 		}
+		$('#readymodal').modal('show');
+		$('#statusbar').removeClass("progress-bar-warning");
+		$('#statusbar').addClass("progress-bar-success");
+		$('#statusbar').html('Ready Up!');
+		var barwidth = (message.data.nready / <%= pug.maxplayers %>) * 100;
+		console.log(barwidth);
+		$("#readybar").width(barwidth + '%');
+		$("#readybar").html(message.data.nready + '/ <%= pug.maxplayers %> players ready...');
 	}
 });
 

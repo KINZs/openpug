@@ -77,3 +77,6 @@ html, body {
 	margin-right: auto;
 	width: 100%;
 }
+.modal-body {
+	margin-bottom: 15px;
+}

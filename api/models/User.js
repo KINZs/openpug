@@ -34,9 +34,8 @@ module.exports = {
 		type: 'string',
 		//todo: enum
 	},
-	readyState: {
-		type: 'string',
-		enum: ['ready', 'notready']
+	ready: {
+		type: 'boolean'
 	},
 	_waiting: {
 		type: 'boolean'
