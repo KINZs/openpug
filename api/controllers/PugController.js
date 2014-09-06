@@ -108,6 +108,13 @@ module.exports = {
 					});
 				}
 			});
+			User.update({pugid: req.body.pugid}, {ready: false}).exec(function(err, newusers) {
+				if (err) console.log(err);
+
+				newusers.forEach(function(user) {
+					User.publishUpdate(user.id, user.toJSON());
+				});
+			});
 			/*Pug.findOne({id: req.body.pugid}, function(err, pug) {
 				Pug.removePlayer(req.session.passport.user, pug);
 			}); */
@@ -129,12 +136,12 @@ module.exports = {
 								Pug.update({id: req.body.pugid}, {nready: +pug.nready+1}).exec(function(err, newpug) {
 									if (err) console.log(err);
 									Pug.publishUpdate(newpug[0].id, newpug[0].toJSON());
+									User.update({id: user.id}, {ready: true}).exec(function(err, newuser) {
+										if (err) console.log(err);
+										User.publishUpdate(newuser[0].id, newuser[0].toJSON());
+									});
 								});
 							}
-							User.update({id: user.id}, {ready: true}).exec(function(err, newuser) {
-								if (err) console.log(err);
-								User.publishUpdate(newuser[0].id, newuser[0].toJSON());
-							});
 						});
 					}
 				});
