@@ -28,16 +28,19 @@ module.exports = {
 		User.findOne({id: userid}, function(err, user) {
 			if (err) console.log(err);
 
+			// increment pug.nplayers, and tell our cleints
+			if (user.pugid != pug.id) {
+				++pug.nplayers;
+				Pug.update({id: pug.id}, {nplayers: pug.nplayers}).exec(function(err, newpug) {
+					if(err) console.log(err);
+					Pug.publishUpdate(newpug[0].id, {nplayers: pug.nplayers});
+				});
+			}
+
 			User.update({id: user.id}, {pugid: pug.id, team: team, connectState: 'idle', ready: false}).exec(function(err, newuser) {
 				if (err) console.log(err);
 				User.publishUpdate(newuser[0].id, {pugid: pug.id, team: team, connectState: 'idle', ready: false});
 				});
-			});
-			// increment pug.nplayers, and tell our cleints
-			++pug.nplayers;
-			Pug.update({id: pug.id}, {nplayers: pug.nplayers}).exec(function(err, newpug) {
-				if(err) console.log(err);
-				Pug.publishUpdate(newpug[0].id, {nplayers: pug.nplayers});
 			});
 
 			// Ready up!
