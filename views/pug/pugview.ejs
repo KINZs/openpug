@@ -18,7 +18,7 @@
 			<ul class="list-group" id="ctlist">
 				<% for (i = 0; i < pug.maxplayers/2; ++i) { %>
 					<% if (typeof pug.players_ct[i] == 'undefined') { %>
-						<a class="list-group-item" id="ct<%=i%>">Open Slot</a>
+						<a href="#" class="list-group-item" id="ct<%=i%>">Open Slot</a>
 					<% } else { %>
 						<a href="https://steamcommunity.com/profiles/<%= pug.players_ct[i].steamid %>" class="list-group-item" id="ct<%=i%>"> <%= pug.players_ct[i].displayName %> </a>
 					<% } %>
@@ -44,14 +44,60 @@
 	<div class="col-md-12">
 	<h3> Server Status </h3>
 		<div class="progress">
-			<div id="statusbar" class="progress-bar progress-bar-success progress-bar-striped active" role="progressbar" aria-valuenow="10" aria-valuemin="0" aria-valuemax="100" style="width:100%;" >
-				Ready
+			<div id="statusbar" class="progress-bar progress-bar-warning progress-bar-striped active" role="progressbar" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100" style="width:50%;" >
+				Waiting for players
 			</div>
 		</div>
 	</div>
 	</div>
 </div>
+
+<div id="readymodal" class="modal fade" data-backdrop="static" data-keyboard="false">
+	<div class="modal-dialog">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h4 class="modal-title">Ready Up</h4>
+			</div>
+			<div class="modal-body">
+				<div class="container">
+					<button id="readybutton" type="button" class="btn btn-primary"> Ready </button>
+					<div id="readybar" class="progress-bar" role="progressbar" style="width:10%">
+					</div>
+				</div>
+			</div>
+			<div class="modal-footer">
+			</div>
+		</div>
+	</div>
+</div>
 <script>
+function update_playerlist()
+{
+	io.socket.get("/user?pugid=<%=pug.id%>&team=ct", function(ctplayers) {
+		for (i = 0; i < ctplayers.length; ++i) {
+			$("#ct"+i).html(ctplayers[i].displayName);
+		}
+		for (i = <%= pug.maxplayers/2 %>; i >= ctplayers.length; --i) {
+			$("#ct"+i).html("Open Slot");
+		}
+	});
+	io.socket.get("/user?pugid=<%=pug.id%>&team=t", function(tplayers) {
+		for (i = 0; i < tplayers.length; ++i) {
+			$("#t"+i).html(tplayers[i].displayName);
+		}
+		for (i = <%= pug.maxplayers/2 %>; i >= tplayers.length; --i) {
+			$("#t"+i).html("Open Slot");
+		}
+	});
+}
+
+$("#statusbar").width('<%= ((pug.players_t.length + pug.players_ct.length) / pug.maxplayers) * 100 %>%');
+<% if (pug.state == 'filling') { %>
+	$("#statusbar").html('filling...');
+<% } %>
+
+$('#readybar').hide();
+
 $("#joinCT").click(function() {
 	io.socket.post("/pug/join", {pugid: <%= pug.id %>, team: 'ct', _csrf: '<%=_csrf%>'}, function(data, jwres) {
 	});
@@ -59,41 +105,104 @@ $("#joinCT").click(function() {
 $("#joinT").click(function() {
 	io.socket.post("/pug/join", {pugid: <%= pug.id %>, team: 't', _csrf: '<%=_csrf%>'}, function(data, jwres) {  });
 });
-
+$("#readybutton").click(function() {
+	im_ready = true;
+	io.socket.post("/pug/ready", {pugid: <%= pug.id %>, _csrf: '<%=_csrf%>'});
+	$('#readybutton').hide();
+	$('#readybar').show();
+});
+update_playerlist();
+// Subscribe to user updates
+io.socket.get("/user", function(){}); 
+io.socket.on("user", function(message) {
+	update_playerlist();
+});
 // Subscribe to updates about this pug
 io.socket.get("/pug/<%= pug.id %>", function(res) {});	
 io.socket.on('pug', function(message) {
 	console.log(message);
+	if (message.data.state == 'readyup') {
+		if (im_ready) {
+			$("#readybar").show();
+			$("#readybutton").hide();
+		} else {
+			$("#readybar").hide();
+			$("#readybutton").show();
+		}
+		$('#readymodal').modal('show');
+		$('#statusbar').removeClass("progress-bar-warning");
+		$('#statusbar').addClass("progress-bar-success");
+		$('#statusbar').html('Ready Up!');
+	}
+	if (message.data.state != undefined && message.data.state != 'readyup') {
+		$('#readymodal').modal('hide');
+	}
+
+	if (message.data.state == 'filling') {
+		im_ready = false;
+		$("#statusbar").removeClass("progress-bar-success");
+		$("#statusbar").addClass("progress-bar-warning");
+		var barwidth = (message.data.players_ct.length + message.data.players_t.length) / message.data.maxplayers;
+		barwidth *= 100;
+		$("#statusbar").width(barwidth + '%');
+		$("#statusbar").html('filling...');
+	}
+	if (message.data.state == 'connecting' && message.data.steam_connect) {
+		window.open(message.data.steam_connect);
+	}
+	if (message.data.state == 'connecting') {
+		$('#statusbar').html('Players connecting...');
+	}
 	if (message.id == <%= pug.id %> && message.verb == 'updated') {
-		for (i = 0; i < message.data.players_ct.length; ++i) {
-			$("#ct"+i).html(message.data.players_ct[i].displayName);
-			if (message.data.players_ct[i].connectState == 'connected') {
-				$("#ct"+i).removeClass('list-group-item-danger');
-				$("#ct"+i).addClass('list-group-item-success');
-			} else if (message.data.players_ct[i].connectState == 'disconnected') {
+		if (message.data.nready && message.data.state == 'readyup') {
+			var barwidth = (message.data.nready / message.data.maxplayers) * 100;
+			console.log(barwidth);
+			$("#readybar").width(barwidth + '%');
+			$("#readybar").html(message.data.nready + '/' + message.data.maxplayers + ' players ready...');
+		}
+		if (message.data.state != undefined && message.data.state != 'connecting') {
+			for (i = 0; i < <%= pug.maxplayers/2 %>; ++i) {
 				$("#ct"+i).removeClass('list-group-item-success');
-				$("#ct"+i).addClass('list-group-item-danger');
-			}
-		}
-		for (i = 5; i >= message.data.players_ct.length; --i) {
-			$("#ct"+i).html("Open Slot");
-			$("#ct"+i).removeClass('list-group-item-success');
-			$("#ct"+i).removeClass('list-group-item-danger');
-		}
-		for (i = 0; i < message.data.players_t.length; ++i) {
-			$("#t"+i).html(message.data.players_t[i].displayName);
-			if (message.data.players_t[i].connectState == 'connected') {
-				$("#t"+i).removeClass('list-group-item-danger');
-				$("#t"+i).addClass('list-group-item-success');
-			} else if (message.data.players_t[i].connectState == 'disconnected') {
+				$("#ct"+i).removeClass('list-group-item-danger');
 				$("#t"+i).removeClass('list-group-item-success');
-				$("#t"+i).addClass('list-group-item-danger');
+				$("#t"+i).removeClass('list-group-item-danger');
 			}
 		}
-		for (i = 5; i >= message.data.players_t.length; --i) {
-			$("#t"+i).html("Open Slot");
-			$("#t"+i).removeClass('list-group-item-success');
-			$("#t"+i).removeClass('list-group-item-danger');
+		if (message.data.players_ct && message.data.players_t) {
+			for (i = 0; i < message.data.players_ct.length; ++i) {
+				$("#ct"+i).html(message.data.players_ct[i].displayName);
+				if (message.data.state == 'connecting') {
+					if (message.data.players_ct[i].connectState == 'connected') {
+						$("#ct"+i).removeClass('list-group-item-danger');
+						$("#ct"+i).addClass('list-group-item-success');
+					} else if (message.data.players_ct[i].connectState == 'disconnected') {
+						$("#ct"+i).removeClass('list-group-item-success');
+						$("#ct"+i).addClass('list-group-item-danger');
+					}
+				}
+			}
+			for (i = 5; i >= message.data.players_ct.length; --i) {
+				$("#ct"+i).html("Open Slot");
+				$("#ct"+i).removeClass('list-group-item-success');
+				$("#ct"+i).removeClass('list-group-item-danger');
+			}
+			for (i = 0; i < message.data.players_t.length; ++i) {
+				$("#t"+i).html(message.data.players_t[i].displayName);
+				if (message.data.state == 'connecting') {
+					if (message.data.players_t[i].connectState == 'connected') {
+						$("#t"+i).removeClass('list-group-item-danger');
+						$("#t"+i).addClass('list-group-item-success');
+					} else if (message.data.players_t[i].connectState == 'disconnected') {
+						$("#t"+i).removeClass('list-group-item-success');
+						$("#t"+i).addClass('list-group-item-danger');
+					}
+				}
+			}
+			for (i = 5; i >= message.data.players_t.length; --i) {
+				$("#t"+i).html("Open Slot");
+				$("#t"+i).removeClass('list-group-item-success');
+				$("#t"+i).removeClass('list-group-item-danger');
+			}
 		}
 	}
 });

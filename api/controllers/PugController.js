@@ -1,7 +1,7 @@
 /*  
 *
  * @description :: Server-side logic for managing pugs
- * @help        :: See http://links.sailsjs.org/docs/controllers
+ * @help        :: TODO
  */
 
 module.exports = {
@@ -27,37 +27,44 @@ module.exports = {
 				conn.connect();
 				conn.on('auth', function() {
 					conn.disconnect();
-					Pug.create({server: req.body.server, port: req.body.port, game: req.body.game,
-								map: req.body.map, rconpassword: req.body.rconpassword, maxplayers: 10, 
-								state: 'validating', players_ct: [], players_t: [], joinpassword: req.body.joinpassword}).exec(
-								function(err, pug) {
-									if (err) { 
-										res.send(500);							
-										} else {
-											Pug.publishCreate(pug);							
-										res.redirect('/pug/view?p=' + pug.id);
-									}});
-					});
+					Pug.create({connectpassword: Math.random().toString(36).substring(10), server: req.body.server, port: req.body.port, game: req.body.game,
+						map: req.body.map, rconpassword: req.body.rconpassword, maxplayers: 2, 
+						state: 'filling', nready: 0, players_ct: [], players_t: [], joinpassword: req.body.joinpassword}).exec(
+						function(err, pug) {
+							if (err) { 
+								res.send(500);							
+								} else {
+								Pug.publishCreate(pug);							
+								res.redirect('/pug/view/' + pug.id);
+					}});
+				});
 					
 				conn.on('error', function(err) {
 					conn.disconnect();
-					res.view('pug/rconerror', {error: err});
+					res.view('pug/rconerror', {error: err, user: req.user});
 				});
 			}
 		} else {
 			res.view('pug/new', {user: req.user});
 		}
 	},
+
 	'join': function(req, res) {
 		if (req.method == 'POST') {
 			if (req.body.pugid != undefined && req.body.team != undefined) {
 				Pug.findOne({id: req.body.pugid}, 
 				function(err, pug) {
-					if (err) res.send(500);
-					// Make sure we're logged in to use this controller.  Use policies to implement
-					User.findOne({id: req.session.passport.user}, function(err, user) {
-						if (err) res.send(500);
-						Pug.addPlayer(pug, user, req.body.team);
+					if (err) console.log(err);
+
+					User.find({pugid: pug.id, team: req.body.team}).exec(function(err, found) {
+						if (found.length < pug.maxplayers/2) {
+							User.findOne({id: req.session.passport.user}, function(err, user) {
+								User.update({id: user.id}, {pugid: pug.id, team: req.body.team, connectState: 'idle', readyState: 'notready'}).exec(function(err, newuser) {
+									if (err) console.log(err);
+									User.publishUpdate(newuser[0].id, newuser[0].toJSON());
+								});
+							});
+						}
 					});
 				});
 			}
@@ -65,13 +72,32 @@ module.exports = {
 	},
 	'leave': function(req, res) {
 		if (req.body.pugid != undefined && req.session.passport.user != undefined) {
-			Pug.findOne({id: req.body.pugid}, function(err, pug) {
-				Pug.removePlayer(req.session.passport.user, pug);
+			User.findOne({id: req.session.passport.user, pugid: req.body.pugid}).exec(function(err, user) {
+				if (user) {
+					User.update({id: user.id}, {pugid: undefined, team: undefined, connectState: undefined, readyState: undefined}).exec(function(err, newuser) {
+						if (err) console.log(err);
+						User.publishUpdate(newuser[0].id, newuser[0].toJSON());
+					});
+				}
 			});
+			/*Pug.findOne({id: req.body.pugid}, function(err, pug) {
+				Pug.removePlayer(req.session.passport.user, pug);
+			}); */
 			res.send(200);
 		} else {
 			res.send(404);
 		}	
+	},
+	'ready': function(req, res) {
+		if (req.method == 'POST') {
+			if (req.body.pugid != undefined) {
+				Pug.findOne({id: req.body.pugid}, function(err, pug) {
+					if (err) console.log(err);
+					Pug.readyPlayer(pug, req.session.passport.user);
+				});
+				res.send(200);
+			}
+		}
 	},
 	'view': function(req, res) {
 		if(req.params.id == undefined) {

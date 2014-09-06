@@ -23,6 +23,21 @@ module.exports = {
 	avatar: {
 		type: 'string'
 	},
+	pugid: {
+		type: 'int'
+	},
+	team: {
+		type: 'string',
+		enum: ['t', 'ct']
+	},
+	connectState: {
+		type: 'string',
+		//todo: enum
+	},
+	readyState: {
+		type: 'string',
+		enum: ['ready', 'notready']
+	},
 	_waiting: {
 		type: 'boolean'
 	},

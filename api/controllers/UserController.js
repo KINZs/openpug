@@ -12,15 +12,11 @@ module.exports = {
 		});
 		res.send(200);
 	},
-	openauth: function(req,res) {
-		passport.authenticate('steam');
-	},
 	logout: function(req,res) {
 		res.logout();
 		res.redirect('/');
 	},
 	login: function(req,res) {
-		
 		passport.authenticate('steam', function(err, user) {
 			if ((err) || (!user)) return res.redirect('/loginfail');
 			req.logIn(user, function(err) {
@@ -34,6 +30,7 @@ module.exports = {
 		});
 		})(req, res);    
 	},
+
 	who: function(req,res) {
 		res.json(req.user);
 	}

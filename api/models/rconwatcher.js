@@ -21,10 +21,10 @@ function RconWatcher(host, port, rconpw) {
 		}
 	});
 
-	// I think this might be a hack.  I'm still very new to Node
 	var watcher = this;
 
 	this.conn.on('auth', function() {
+		var conn = this;
 		watcher.statusPoll = setInterval(_poll, 10000, watcher.conn); // Interval for polling rcon status
 		watcher.conn.on('response', function(res) {
 			var t_users = [];
@@ -39,6 +39,10 @@ function RconWatcher(host, port, rconpw) {
 			t_users.forEach(function(user) {
 				if (watcher.connectedusers.indexOf(user) == -1) {
 					watcher.connectedusers.push(user);
+										//!! HACK !! HACK !!HACK
+					if (watcher.connectedusers.length == 10) {
+						watcher.emit('full');
+					}
 					var emitted_user = {steam32: user, steam64: steam.convertTo64(user)}
 					watcher.emit('userconnected', emitted_user);
 				}
