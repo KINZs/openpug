@@ -31,9 +31,13 @@ module.exports = {
 			// increment pug.nplayers, and tell our cleints
 			if (user.pugid != pug.id) {
 				++pug.nplayers;
-				Pug.update({id: pug.id}, {nplayers: pug.nplayers}).exec(function(err, newpug) {
+				if (pug.nplayers == pug.maxplayers) {
+					pug.state = 'readyup';
+				}
+
+				Pug.update({id: pug.id}, {nplayers: pug.nplayers, state: pug.state}).exec(function(err, newpug) {
 					if(err) console.log(err);
-					Pug.publishUpdate(newpug[0].id, {nplayers: pug.nplayers});
+					Pug.publishUpdate(newpug[0].id, {nplayers: pug.nplayers, state: pug.state});
 				});
 			}
 
@@ -42,15 +46,34 @@ module.exports = {
 				User.publishUpdate(newuser[0].id, {pugid: pug.id, team: team, connectState: 'idle', ready: false});
 				});
 			});
+		});
+	},
+	removePlayer: function(pug, userid) {
+		User.findOne({id: userid, pugid: pug.id}).exec(function(err, user) {
+			if (err) console.log(err);
 
-			// Ready up!
-			if (pug.nplayers == pug.maxplayers) {
-				pug.state = 'readyup';
-				Pug.update({id: pug.id}, {state: pug.state}).exec(function(err, newpug) {
+			if (user) {
+				// set nready to 0, nplayers to nplayers - 1, and state to filling
+				--pug.nplayers;
+				pug.state = 'filling';
+				Pug.update({id: pug.id}, {nready: 0, nplayers: pug.nplayers, state: pug.state}).exec(function(err, newpug) {
 					if (err) console.log(err);
-					Pug.publishUpdate(newpug[0].id, {state: pug.state});
+					Pug.publishUpdate(newpug[0].id, {nready: 0, nplayers: pug.nplayers, state: pug.state});
+				});
+				// Clear the user from the pug
+				User.update({id: user.id}, {pugid: null, team: null, connectState: null, ready: false}).exec(function(err, newuser) {
+					if (err) console.log(err);
+					User.publishUpdate(newuser[0].id, {pugid: null, team: null, connectState: null, ready: false});
 				});
 			}
+		});
+		// Unready all users in the pug
+		User.update({pugid: pug.id}, {ready: false}).exec(function(err, players) {
+			if (err) console.log(err);
+
+			players.forEach(function(user) {
+				User.publishUpdate(user.id, {ready: false});
+			});
 		});
 	},
 
