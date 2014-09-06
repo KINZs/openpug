@@ -2,6 +2,7 @@
 *
  * @description :: Server-side logic for managing pugs
  * @help        :: TODO
+ * TODO: Thin out controllers, move this logic to models
  */
 
 module.exports = {
@@ -52,38 +53,10 @@ module.exports = {
 	'join': function(req, res) {
 		if (req.method == 'POST') {
 			if (req.body.pugid != undefined && req.body.team != undefined) {
-				Pug.findOne({id: req.body.pugid}, 
-				function(err, pug) {
+				Pug.findOne({id: req.body.pugid}, function(err, pug) {
 					if (err) console.log(err);
 
-					User.find({pugid: pug.id, team: req.body.team}).exec(function(err, found) {
-						if (found.length < pug.maxplayers/2) {
-							User.findOne({id: req.session.passport.user}, function(err, user) {
-								User.update({id: user.id}, {pugid: pug.id, team: req.body.team, connectState: 'idle', ready: false}).exec(function(err, newuser) {
-									if (err) console.log(err);
-									User.publishUpdate(newuser[0].id, newuser[0].toJSON());
-
-									User.find({pugid: pug.id}).exec(function(err, found) {
-										if (err) console.log(err);
-
-										Pug.update({id: pug.id}, {nplayers: found.length}).exec(function(err, newpug) {
-											if (err) console.log(err);
-
-											Pug.publishUpdate(newpug[0].id, newpug[0].toJSON());
-										});
-										if (found.length == pug.maxplayers) {
-											// Pug is full! ready up!
-											pug.state = 'readyup';
-											Pug.update({id: pug.id}, {state: pug.state}).exec(function(err, newpug) {
-												if (err) console.log(err);
-												Pug.publishUpdate(newpug[0].id, newpug[0].toJSON());
-											});
-										}
-									});
-								});
-							});
-						} 
-					});
+					Pug.addPlayer(pug, req.session.passport.user, req.body.team);
 				});
 			}
 		}

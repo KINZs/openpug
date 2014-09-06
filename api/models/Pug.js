@@ -15,6 +15,42 @@
 
 
 module.exports = {
+	addPlayer: function(pug, userid, team) {
+		// Look up users on the team the user wishes to join (found[])
+		User.find({pugid: pug.id, team: team}).exec(function(err, found) {
+
+		if (found.length >= pug.maxplayers / 2) {
+			// Team is full!
+		return;
+		}
+
+		// Let's find our user and add him to the team
+		User.findOne({id: userid}, function(err, user) {
+			if (err) console.log(err);
+
+			User.update({id: user.id}, {pugid: pug.id, team: team, connectState: 'idle', ready: false}).exec(function(err, newuser) {
+				if (err) console.log(err);
+				User.publishUpdate(newuser[0].id, {pugid: pug.id, team: team, connectState: 'idle', ready: false});
+				});
+			});
+			// increment pug.nplayers, and tell our cleints
+			++pug.nplayers;
+			Pug.update({id: pug.id}, {nplayers: pug.nplayers}).exec(function(err, newpug) {
+				if(err) console.log(err);
+				Pug.publishUpdate(newpug[0].id, {nplayers: pug.nplayers});
+			});
+
+			// Ready up!
+			if (pug.nplayers == pug.maxplayers) {
+				pug.state = 'readyup';
+				Pug.update({id: pug.id}, {state: pug.state}).exec(function(err, newpug) {
+					if (err) console.log(err);
+					Pug.publishUpdate(newpug[0].id, {state: pug.state});
+				});
+			}
+		});
+	},
+
 	test: function() { console.log(User); },
 	/*connectplayers: function(pug) {
 		// Set all user states to 'disconnected' and tell clients
@@ -330,6 +366,7 @@ module.exports = {
 		var obj = this.toObject();
 		delete obj.rconpassword;
 		delete obj.joinpassword;
+		delete obj.connectpassword;
 		return obj;
 	},
   }

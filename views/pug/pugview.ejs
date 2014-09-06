@@ -58,7 +58,16 @@
 		</div>
 	</div>
 </div>
+<audio preload="auto" id="letsroll" src="/audio/Lets roll-oll.mp3">
+</audio>
 <script>
+$("#letsroll").trigger('load');
+function update_progressbar(nplayers)
+{
+	var barwidth = (nplayers/<%= pug.maxplayers %>) * 100 + '%';
+	$('#statusbar').width(barwidth);
+	$('#statusbar').html('filling...');
+}
 function update_playerlist()
 {
 	io.socket.get("/user?pugid=<%=pug.id%>&team=ct", function(ctplayers) {
@@ -86,6 +95,7 @@ $("#statusbar").width('<%= pug.nplayers / pug.maxplayers * 100 %>%');
 <% } %>
 
 $('#readybar').hide();
+$('#letsroll').hide();
 
 $("#joinCT").click(function() {
 	io.socket.post("/pug/join", {pugid: <%= pug.id %>, team: 'ct', _csrf: '<%=_csrf%>'}, function(data, jwres) {
@@ -112,19 +122,16 @@ io.socket.get("/pug/<%= pug.id %>", function(res) {});
 io.socket.on('pug', function(message) {
 	console.log(message);
 	if (message.verb == 'updated') {
-	
+		if (message.data.nplayers > 0) {
+			update_progressbar(message.data.nplayers);
+		}
 	}
+
 	if (message.data.state == 'filling') {
 		im_ready = false;
 		$('#readymodal').modal('hide');
 		$('#readybar').hide();
 		$('readybutton').show();
-
-		if (message.data.nplayers != undefined) {
-			var barwidth = ((message.data.nplayers)/<%= pug.maxplayers %>) * 100 + '%';
-			$("#statusbar").width(barwidth);
-			$("#statusbar").html('filling...');
-		}
 	}
 	if (message.data.state == 'readyup') {
 		if (im_ready) {
@@ -140,6 +147,10 @@ io.socket.on('pug', function(message) {
 		$('#statusbar').html('Ready Up!');
 		var barwidth = (message.data.nready / <%= pug.maxplayers %>) * 100;
 		console.log(barwidth);
+		if (barwidth == '100') {
+			$("#readymodal").modal('hide');
+			document.getElementById('letsroll').play();
+		}
 		$("#readybar").width(barwidth + '%');
 		$("#readybar").html(message.data.nready + '/ <%= pug.maxplayers %> players ready...');
 	}
