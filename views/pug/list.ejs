@@ -18,14 +18,16 @@
 				</td>
 				<td class="pugstate"><%= pug.state %></td>
 				<td class="pugmap"><%= pug.map %></td>
-				<td class="pugplayers"><%= pug.currentplayers() %>/<%= pug.maxplayers %></td>
+				<td class="pugplayers"><%= pug.nplayers %>/<%= pug.maxplayers %></td>
 			</tr>
 		<% }); %> 
 		</tbody>
 	</table>
 </div>
 <script>
+io.socket.get('/pug', function() {});
 io.socket.on('pug', function (message) {
+	console.log(message);
 	var fullgamename;
 	if (message.data.game == 'csgo') {
 		fullgamename = "Counter-Strike: Global Offensive";
@@ -37,9 +39,7 @@ io.socket.on('pug', function (message) {
 		$('#'+message.data.id).append("<td>" + fullgamename + "</td>");
 		$('#'+message.data.id).append("<td>" + message.data.state + "</td>");
 		$('#'+message.data.id).append("<td>" + message.data.map + "</td>");
-		var nplayers = message.data.players_ct.length+message.data.players_t.length;
-		if (nplayers == 'undefined') nplayers = 0;
-		$('#'+message.data.id).append("<td>" + nplayers + "/" + message.data.maxplayers + "</td>");
+		$('#'+message.data.id).append("<td>" + message.data.nplayers + "/" + message.data.maxplayers + "</td>");
 		$('#'+message.data.id).click(function() {
 			window.document.location = '/pug/view/' + message.data.id;
 		});
@@ -47,9 +47,7 @@ io.socket.on('pug', function (message) {
 		$('#'+message.data.id+' .pugstate').html(message.data.state);
 		$('#'+message.data.id+' .puggame').html(fullgamename);
 		$('#'+message.data.id+' .pugmap').html(message.data.map);
-		var nplayers = message.data.players_t.length+message.data.players_ct.length;
-		if (nplayers == 'undefined') nplayers = 0;
-		$('#'+message.data.id+' .pugplayers').html(nplayers + '/' + message.data.maxplayers);
+		$('#'+message.data.id+' .pugplayers').html(message.data.nplayers + '/' + message.data.maxplayers);
 	}
 });
 <% pugs.forEach(function(pug) { %>
@@ -57,5 +55,4 @@ $('#<%= pug.id %>').click(function() {
 	window.document.location = '/pug/view/<%=pug.id%>';
 });
 <% }); %>
-io.socket.get('/pug', function(res) {});
 </script>

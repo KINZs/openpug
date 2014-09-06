@@ -29,7 +29,7 @@ module.exports = {
 					conn.disconnect();
 					Pug.create({connectpassword: Math.random().toString(36).substring(10), server: req.body.server, port: req.body.port, game: req.body.game,
 						map: req.body.map, rconpassword: req.body.rconpassword, maxplayers: 2, 
-						state: 'filling', nready: 0, players_ct: [], players_t: [], joinpassword: req.body.joinpassword}).exec(
+						state: 'filling', nready: 0, nplayers: 0, players_ct: 0, players_t: 0, joinpassword: req.body.joinpassword}).exec(
 						function(err, pug) {
 							if (err) { 
 								res.send(500);							
@@ -62,9 +62,27 @@ module.exports = {
 								User.update({id: user.id}, {pugid: pug.id, team: req.body.team, connectState: 'idle', readyState: 'notready'}).exec(function(err, newuser) {
 									if (err) console.log(err);
 									User.publishUpdate(newuser[0].id, newuser[0].toJSON());
+
+									User.find({pugid: pug.id}).exec(function(err, found) {
+										if (err) console.log(err);
+
+										Pug.update({id: pug.id}, {nplayers: found.length}).exec(function(err, newpug) {
+											if (err) console.log(err);
+
+											Pug.publishUpdate(newpug[0].id, newpug[0].toJSON());
+										});
+										if (found.length == pug.maxplayers) {
+											// Pug is full! ready up!
+											pug.state = 'readyup';
+											Pug.update({id: pug.id}, {state: pug.state}).exec(function(err, newpug) {
+												if (err) console.log(err);
+												Pug.publishUpdate(newpug[0].id, newpug[0].toJSON());
+											});
+										}
+									});
 								});
 							});
-						}
+						} 
 					});
 				});
 			}
@@ -74,6 +92,16 @@ module.exports = {
 		if (req.body.pugid != undefined && req.session.passport.user != undefined) {
 			User.findOne({id: req.session.passport.user, pugid: req.body.pugid}).exec(function(err, user) {
 				if (user) {
+					Pug.findOne({id: req.body.pugid}, function(err, pug) {
+						if (err) console.log(err);
+
+						--pug.nplayers;
+						pug.state = 'filling';
+						Pug.update({id: req.body.pugid}, {nplayers: pug.nplayers, state: pug.state}).exec(function(err, newpug) {
+							if (err) console.log(err);
+							Pug.publishUpdate(newpug[0].id, newpug[0].toJSON());
+						});
+					});
 					User.update({id: user.id}, {pugid: undefined, team: undefined, connectState: undefined, readyState: undefined}).exec(function(err, newuser) {
 						if (err) console.log(err);
 						User.publishUpdate(newuser[0].id, newuser[0].toJSON());

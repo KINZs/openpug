@@ -9,12 +9,14 @@
 *		- readyup
 *		- connecting
 *		- active
+* rewrite pug logic using User model w/pugid!
 */
 
 
 
 module.exports = {
-	connectplayers: function(pug) {
+	test: function() { console.log(User); },
+	/*connectplayers: function(pug) {
 		// Set all user states to 'disconnected' and tell clients
 		for (i = 0; i < pug.players_ct.length; ++i) {
 			pug.players_ct[i].connectState = 'disconnected';
@@ -263,7 +265,7 @@ module.exports = {
 			console.log("All ready, launch into server");
 
 		}
-	},
+	}, */
   attributes: {
 	server: {
 		type: 'string'
@@ -290,19 +292,27 @@ module.exports = {
 	maxplayers: {
 		type: 'int',
 	},
+	// Deprecated!
 	players_ct: {
-		type: 'array',
+		type: 'int',
 	},	
 	players_t: {
-		type: 'array',
+		type: 'int',
 	},
+	nplayers: {
+		type: 'int'
+	},
+
 	nready: {
 		type: 'int',
 	},
 	currentplayers: function() {
-		var len = this.players_ct.length + this.players_t.length;
-		if (len == 'undefined') len = 0;
-		return len;
+		var ret = 0;
+		User.find({pugid: this.id}).exec(function(err, users) {
+			if (err) console.log(err);
+			if (users.length != 'undefined') ret = users.length;
+		});
+		return ret;
 	},
 	state: {
 		type: 'string',
