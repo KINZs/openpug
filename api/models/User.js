@@ -6,6 +6,18 @@
 */
 
 module.exports = {
+	beforeUpdate: function(values, cb) {
+		// beforeUpdate lifecycle callback, cb() must be called!
+		// checks for room in Pug if team and pugid are defined
+
+		User.find({pugid: values.pugid, team: values.team}).exec(function(err, users) {
+			if (err) console.log(err);
+			if (users.length >= 5) { 
+				delete values.team;
+			}
+			cb();
+		});
+	},
 
   attributes: {
 	joinpw: {

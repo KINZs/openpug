@@ -29,7 +29,7 @@ module.exports = {
 				conn.on('auth', function() {
 					conn.disconnect();
 					Pug.create({connectpassword: Math.random().toString(36).substring(10), server: req.body.server, port: req.body.port, game: req.body.game,
-						map: req.body.map, rconpassword: req.body.rconpassword, maxplayers: 2, 
+						map: req.body.map, rconpassword: req.body.rconpassword, maxplayers: 10, 
 						state: 'filling', nready: 0, nplayers: 0, joinpassword: req.body.joinpassword}).exec(
 						function(err, pug) {
 							if (err) { 
