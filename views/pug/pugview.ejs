@@ -61,18 +61,22 @@
 <audio preload="auto" id="letsroll" src="/audio/Lets roll-oll.mp3">
 </audio>
 <script>
+var pug_state = 'filling';
 $("#letsroll").trigger('load');
-function update_progressbar(nplayers)
-{
-	var barwidth = (nplayers/<%= pug.maxplayers %>) * 100 + '%';
-	$('#statusbar').width(barwidth);
-	$('#statusbar').html('filling...');
-}
 function update_playerlist()
 {
 	io.socket.get("/user?pugid=<%=pug.id%>&team=ct", function(ctplayers) {
 		for (i = 0; i < ctplayers.length; ++i) {
 			$("#ct"+i).html(ctplayers[i].displayName);
+			if (pug_state == 'connecting') {
+				if (ctplayers[i].connectState == 'connected') {
+					$("#ct"+i).removeClass('list-group-item-danger');
+					$("#ct"+i).addClass('list-group-item-success');
+				} else {
+					$("#ct"+i).removeClass('list-group-item-success');
+					$("#ct"+i).addClass('list-group-item-danger');
+				}
+			}
 		}
 		for (i = <%= pug.maxplayers/2 %>; i >= ctplayers.length; --i) {
 			$("#ct"+i).html("Open Slot");
@@ -81,6 +85,13 @@ function update_playerlist()
 	io.socket.get("/user?pugid=<%=pug.id%>&team=t", function(tplayers) {
 		for (i = 0; i < tplayers.length; ++i) {
 			$("#t"+i).html(tplayers[i].displayName);
+			if (tplayers[i].connectState == 'connected') {
+				$("#t"+i).removeClass('list-group-item-danger');
+				$("#t"+i).addClass('list-group-item-success');
+			} else {
+				$("#t"+i).removeClass('list-group-item-success');
+				$("#t"+i).addClass('list-group-item-danger');
+			}
 		}
 		for (i = <%= pug.maxplayers/2 %>; i >= tplayers.length; --i) {
 			$("#t"+i).html("Open Slot");
@@ -127,6 +138,10 @@ io.socket.get("/pug/<%= pug.id %>", function(res) {});
 io.socket.on('pug', function(message) {
 	console.log(message);
 
+	if (message.data.state) {
+		pug_state = message.data.state;
+	}
+
 	if (message.data.state == 'filling') {
 		im_ready = false;
 		$('#readymodal').modal('hide');
@@ -154,7 +169,11 @@ io.socket.on('pug', function(message) {
 		$("#readybar").width(barwidth + '%');
 		$("#readybar").html(message.data.nready + '/ <%= pug.maxplayers %> players ready...');
 	}
-});
+	if (message.data.state == 'connecting') {
+		$("#readymodal").modal('hide');
+		update_playerlist();
+	}
+}); 
 
 /*
 		$('#readymodal').modal('show');

@@ -26,7 +26,8 @@ module.exports.policies = {
   *                                                                          *
   ***************************************************************************/
 	PugController: {
-		'*': true,
+		'*': 'isLoggedIn',
+		'homepage': true
 		// Delete: isLobbyCreator:
 	}
 
