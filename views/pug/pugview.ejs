@@ -85,12 +85,14 @@ function update_playerlist()
 	io.socket.get("/user?pugid=<%=pug.id%>&team=t", function(tplayers) {
 		for (i = 0; i < tplayers.length; ++i) {
 			$("#t"+i).html(tplayers[i].displayName);
-			if (tplayers[i].connectState == 'connected') {
-				$("#t"+i).removeClass('list-group-item-danger');
-				$("#t"+i).addClass('list-group-item-success');
-			} else {
-				$("#t"+i).removeClass('list-group-item-success');
-				$("#t"+i).addClass('list-group-item-danger');
+			if (pug_state == 'connecting') {
+				if (tplayers[i].connectState == 'connected') {
+					$("#t"+i).removeClass('list-group-item-danger');
+					$("#t"+i).addClass('list-group-item-success');
+				} else {
+					$("#t"+i).removeClass('list-group-item-success');
+					$("#t"+i).addClass('list-group-item-danger');
+				}
 			}
 		}
 		for (i = <%= pug.maxplayers/2 %>; i >= tplayers.length; --i) {
@@ -174,87 +176,6 @@ io.socket.on('pug', function(message) {
 		update_playerlist();
 	}
 }); 
-
-/*
-		$('#readymodal').modal('show');
-		$('#statusbar').removeClass("progress-bar-warning");
-		$('#statusbar').addClass("progress-bar-success");
-		$('#statusbar').html('Ready Up!');
-	}
-	if (message.data.state != undefined && message.data.state != 'readyup') {
-		$('#readymodal').modal('hide');
-	}
-
-	if (message.data.state == 'filling') {
-		im_ready = false;
-		$("#statusbar").removeClass("progress-bar-success");
-		$("#statusbar").addClass("progress-bar-warning");
-		var barwidth = (message.data.players_ct.length + message.data.players_t.length) / message.data.maxplayers;
-		barwidth *= 100;
-		$("#statusbar").width(barwidth + '%');
-		$("#statusbar").html('filling...');
-	}
-	if (message.data.state == 'connecting' && message.data.steam_connect) {
-		window.open(message.data.steam_connect);
-	}
-	if (message.data.state == 'connecting') {
-		$('#statusbar').html('Players connecting...');
-	}
-	if (message.id == <%= pug.id %> && message.verb == 'updated') {
-		if (message.data.nready && message.data.state == 'readyup') {
-			var barwidth = (message.data.nready / message.data.maxplayers) * 100;
-			console.log(barwidth);
-			$("#readybar").width(barwidth + '%');
-			$("#readybar").html(message.data.nready + '/' + message.data.maxplayers + ' players ready...');
-		}
-		if (message.data.state != undefined && message.data.state != 'connecting') {
-			for (i = 0; i < <%= pug.maxplayers/2 %>; ++i) {
-				$("#ct"+i).removeClass('list-group-item-success');
-				$("#ct"+i).removeClass('list-group-item-danger');
-				$("#t"+i).removeClass('list-group-item-success');
-				$("#t"+i).removeClass('list-group-item-danger');
-			}
-		}
-		if (message.data.players_ct && message.data.players_t) {
-			for (i = 0; i < message.data.players_ct.length; ++i) {
-				$("#ct"+i).html(message.data.players_ct[i].displayName);
-				if (message.data.state == 'connecting') {
-					if (message.data.players_ct[i].connectState == 'connected') {
-						$("#ct"+i).removeClass('list-group-item-danger');
-						$("#ct"+i).addClass('list-group-item-success');
-					} else if (message.data.players_ct[i].connectState == 'disconnected') {
-						$("#ct"+i).removeClass('list-group-item-success');
-						$("#ct"+i).addClass('list-group-item-danger');
-					}
-				}
-			}
-			for (i = 5; i >= message.data.players_ct.length; --i) {
-				$("#ct"+i).html("Open Slot");
-				$("#ct"+i).removeClass('list-group-item-success');
-				$("#ct"+i).removeClass('list-group-item-danger');
-			}
-			for (i = 0; i < message.data.players_t.length; ++i) {
-				$("#t"+i).html(message.data.players_t[i].displayName);
-				if (message.data.state == 'connecting') {
-					if (message.data.players_t[i].connectState == 'connected') {
-						$("#t"+i).removeClass('list-group-item-danger');
-						$("#t"+i).addClass('list-group-item-success');
-					} else if (message.data.players_t[i].connectState == 'disconnected') {
-						$("#t"+i).removeClass('list-group-item-success');
-						$("#t"+i).addClass('list-group-item-danger');
-					}
-				}
-			}
-			for (i = 5; i >= message.data.players_t.length; --i) {
-				$("#t"+i).html("Open Slot");
-				$("#t"+i).removeClass('list-group-item-success');
-				$("#t"+i).removeClass('list-group-item-danger');
-			}
-		}
-	}
-}); */
-io.socket.get("/user/<%= user.id %>", function(data) { console.log(data); }); 
-
 // Leave pug on window close
 window.onbeforeunload = function() {
 	io.socket.post("/pug/leave", {pugid: <%= pug.id %>, _csrf: '<%=_csrf%>'}, function(data) { console.log(data); });

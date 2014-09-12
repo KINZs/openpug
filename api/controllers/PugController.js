@@ -20,31 +20,31 @@ module.exports = {
 		res.view('welcomepage', {user: req.user});
 	},
 	'new': function(req, res) {
-		if (req.method == 'POST') {
-			if (req.body.game == 'csgo') {
-				var Rcon = require('rcon');
-				console.log(req.body.server + ":"+req.body.port + ", " + req.body.rconpassword);
-				var conn = new Rcon(req.body.server, req.body.port, req.body.rconpassword);
-				conn.connect();
-				conn.on('auth', function() {
-					conn.disconnect();
-					Pug.create({connectpassword: Math.random().toString(36).substring(10), server: req.body.server, port: req.body.port, game: req.body.game,
-						map: req.body.map, rconpassword: req.body.rconpassword, maxplayers: 2, 
-						state: 'filling', nready: 0, nplayers: 0, joinpassword: req.body.joinpassword}).exec(
-						function(err, pug) {
-							if (err) { 
-								res.send(500);							
-								} else {
-								Pug.publishCreate(pug);							
-								res.redirect('/pug/view/' + pug.id);
-					}});
-				});
-					
-				conn.on('error', function(err) {
-					conn.disconnect();
-					res.view('pug/rconerror', {error: err, user: req.user});
-				});
-			}
+		if (req.method == 'POST' && req.body.game == 'csgo') {
+			var Rcon = require('rcon');
+			console.log(req.body.server + ":"+req.body.port + ", " + req.body.rconpassword);
+			var conn = new Rcon(req.body.server, req.body.port, req.body.rconpassword);
+			conn.connect();
+			conn.on('auth', function() {
+				conn.disconnect();
+				Pug.create({connectpassword: Math.random().toString(36).substring(10), server: req.body.server, port: req.body.port, game: req.body.game,
+					map: req.body.map, rconpassword: req.body.rconpassword, maxplayers: 10, 
+					state: 'filling', nready: 0, nplayers: 0, joinpassword: req.body.joinpassword}).exec(
+					function(err, pug) {
+						if (err) { 
+							res.send(500);							
+							} else {
+							
+							Pug.configureServer(pug);
+							Pug.publishCreate(pug);							
+							res.redirect('/pug/view/' + pug.id);
+				}});
+			});
+				
+			conn.on('error', function(err) {
+				conn.disconnect();
+				res.view('pug/rconerror', {error: err, user: req.user});
+			});
 		} else {
 			res.view('pug/new', {user: req.user});
 		}

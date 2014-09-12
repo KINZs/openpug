@@ -5,52 +5,75 @@
 * @docs        :: TODO
 * pug.states = 
 *		- validating
+*   -
 *		- filling
 *		- readyup
 *		- connecting
 *		- active
-* rewrite pug logic using User model w/pugid!
+* 	- dead?
 */
 
 
 
 module.exports = {
+	configureServer: function(pug) {
+		var fs = require('fs');
+
+		fs.readFile('cfg/cevo.cfg', {encoding: 'utf8'}, function(err, data) {
+			if (err) throw err;
+
+			var cfgcommands = data.split('\n');
+			var Rcon = require('rcon');
+			var conn = new Rcon(pug.server, pug.port, pug.rconpassword);
+			conn.on('auth', function() {
+				conn.send('map ' + pug.map);
+				setTimeout(function() {
+					var conn = new Rcon(pug.server, pug.port, pug.rconpassword);
+					conn.connect();
+					conn.on('auth', function() {
+						cfgcommands.forEach(function(command) {
+							conn.send(command);
+						});
+						conn.disconnect();
+					});
+				}, 15000);
+				conn.disconnect();
+			});
+			conn.connect();
+		});
+	},
 	addPlayer: function(pug, userid, team) {
 		//Let's find our user and add him to the team
 		User.findOne({id: userid}, function(err, user) {
 			if (err) console.log(err);
 
-			console.log(user);
 			if (!user) {
-				console.log("No user " + id);
+				console.log("No user " + id + " [Pug.addPlayer]");
 				return;
 			}
 
+			User.find({pugid: pug.id, team: team}).exec(function(err, users) {
+				if (err) console.log(err);
 
-				User.find({pugid: pug.id, team: team}).exec(function(err, users) {
+				if (users.length >= pug.maxplayers/2) {
+					// Team full!
+					return;
+				}
+				if (user.pugid != pug.id) {
+					++pug.nplayers;
+					if (pug.nplayers == pug.maxplayers) {
+						pug.state = 'readyup';
+					}
+				}
+				Pug.update({id: pug.id}, {nplayers: pug.nplayers, state: pug.state, nready: 0}).exec(function(err, newpug) {
+					if(err) console.log(err);
+					Pug.publishUpdate(newpug[0].id, {nplayers: pug.nplayers, state: pug.state, nready: 0});
+				}); 
+				User.update({id: user.id}, {pugid: pug.id, team: team, connectState: 'idle', ready: false}).exec(function(err, newuser) {
 					if (err) console.log(err);
-
-					console.log()
-
-					if (users.length >= pug.maxplayers/2) {
-						console.log('team full'); 
-						return;
-					}
-					if (user.pugid != pug.id) {
-						++pug.nplayers;
-						if (pug.nplayers == pug.maxplayers) {
-							pug.state = 'readyup';
-						}
-					}
-					Pug.update({id: pug.id}, {nplayers: pug.nplayers, state: pug.state, nready: 0}).exec(function(err, newpug) {
-						if(err) console.log(err);
-						Pug.publishUpdate(newpug[0].id, {nplayers: pug.nplayers, state: pug.state, nready: 0});
-					}); 
-					User.update({id: user.id}, {pugid: pug.id, team: team, connectState: 'idle', ready: false}).exec(function(err, newuser) {
-						if (err) console.log(err);
-						User.publishUpdate(newuser[0].id, {pugid: pug.id, team: team, connectState: 'idle', ready: false});
-					});
+					User.publishUpdate(newuser[0].id, {pugid: pug.id, team: team, connectState: 'idle', ready: false});
 				});
+			});
 			
 		});
 	},
@@ -59,7 +82,7 @@ module.exports = {
 			if (err) console.log(err);
 
 			if (!user) {
-				console.log("No user" + userid);
+				console.log("No user " + userid);
 				return;
 			}
 			// set nready to 0, nplayers to nplayers - 1, and state to filling
@@ -93,7 +116,7 @@ module.exports = {
 			if (err) console.log(err);
 
 			if (!user) {
-				console.log("No user " + userid);
+				console.log("No user " + userid + " [Pug.readyPlayer]");
 				return;
 			}
 
@@ -112,7 +135,7 @@ module.exports = {
 			});
 		});
 	},
-	watch: function(pug) {  // This might be a name collision with one of the Sails model methods
+	watch: function(pug) {  // This might be a name collision with the Sails model methods
 		var RconWatcher = require('./rconwatcher');
 		Pug.rconn = new RconWatcher(pug.server, pug.port, pug.rconpassword);
 
@@ -133,6 +156,16 @@ module.exports = {
 
 					User.publishUpdate(newuser[0].id, {connectState: user.connectState});
 				});
+				User.find({pugid: pug.id, connectState: 'connected'}).exec(function(err, users) {
+					if (err) throw err;
+
+					if (users.length == pug.maxplayers) {
+						pug.state = 'active';
+						Pug.update({id: pug.id}, {state: pug.state}).exec(function(err, newpug) {
+							Pug.publishUpdate(newpug[0].id, {state: pug.state});
+						});
+					}
+				});
 			});
 		});
 		this.rconn.on('userdisconnected', function(user) {
@@ -147,6 +180,12 @@ module.exports = {
 					if (err) console.log(err);
 
 					User.publishUpdate(newuser[0].id, {connectState: user.connectState});
+				});
+				pug.state = 'connecting';
+				Pug.update({id: pug.id}, {state: pug.state}).exec(function(err, newpug) {
+					if (err) throw err;
+
+					Pug.publishUpdate(newpug[0].id, {state: pug.state});
 				});
 			});
 		});
