@@ -145,7 +145,7 @@ module.exports = {
 				if (err) console.log(err);
 
 				if (!user) {
-					console.log("No such user in pug: " + user.steam64);
+					console.log("No such user in pug: " + user.steam64 + " [Pug.watch()]");
 					// Kick user here?
 					return;
 				}
@@ -164,6 +164,16 @@ module.exports = {
 						Pug.update({id: pug.id}, {state: pug.state}).exec(function(err, newpug) {
 							Pug.publishUpdate(newpug[0].id, {state: pug.state});
 						});
+						var Rcon = require('rcon');
+						var conn = new Rcon(pug.server, pug.port, pug.rconpassword);
+						conn.on('auth', function() {
+							conn.send('mp_restartgame 1');
+							conn.send('say "[OpenPUG] all players connected, going live!"');
+							conn.send('mp_restartgame 1');
+							conn.send('say "[OpenPUG] --LIVE--"');
+							conn.disconnect();
+						});
+						conn.connect();
 					}
 				});
 			});
