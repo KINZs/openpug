@@ -3,6 +3,7 @@ var Rcon = require('rcon'),
 	util = require('util');
 
 // Readybot connects to the PUG server over rcon and informs the backend when users have connected.
+// This should be a SourceMod plugin for several reasons.
 
 function _poll(bot) {
 	bot.conn.send("status");
